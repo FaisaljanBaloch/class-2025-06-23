@@ -1,0 +1,72 @@
+---
+title: "NYC Census Tracts"
+author: "Faisal Jan"
+format: html
+execute: 
+  echo: false
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+```
+
+```{r}
+nyc_data <- read_csv(file = "data/nyc_tracts.csv", show_col_types = FALSE) |>
+    drop_na() |>
+    mutate(
+    borough = str_extract(tract, "(Queens|New York|Kings|Bronx|Richmond) County"),
+    borough = str_replace(borough, " County", "") # Clean up " County"
+  )
+
+# Rename old to new names
+nyc_data <- nyc_data |>
+  mutate(
+    borough = case_when(
+      borough == "New York" ~ "Manhattan",
+      borough == "Kings" ~ "Brooklyn",
+      borough == "Richmond" ~ "Staten Island",
+      TRUE ~ borough # Keep others as they are
+    )
+  ) |>
+  mutate(
+    borough = as.factor(borough),
+    race = as.factor(race)
+  )
+```
+
+```{r}
+nyc_data |>
+  ggplot(aes(x = med_income)) +
+  geom_histogram(binwidth = 10000, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Median Income", x = "Median Income", y = "Number of Tracts") +
+  theme_minimal()
+```
+
+```{r}
+nyc_data |>
+  ggplot(aes(x = race, y = med_income, fill = race)) +
+  geom_boxplot() + # or geom_violin() for density visualization
+  labs(title = "Median Income by Race", x = "Race", y = "Median Income ($)", fill = "Race") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+nyc_data |>
+  ggplot(aes(x = borough, y = med_income, fill = borough)) +
+  geom_boxplot() +
+  labs(title = "Median Income by Borough", x = "Borough", y = "Median Income ($)", fill = "Borough") +
+  theme_minimal()
+```
+
+```{r}
+nyc_data |>
+  group_by(borough, race) |>
+  summarise(avg_income = mean(med_income), .groups = 'drop') |>
+  ggplot(aes(x = race, y = avg_income, fill = borough)) +
+  geom_col(position = position_dodge()) + # Dodge bars to compare side-by-side
+  labs(title = "Average Median Income by Race and Borough",
+       x = "Race", y = "Average Median Income ($)", fill = "Borough") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
